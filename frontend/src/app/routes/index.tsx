@@ -89,16 +89,8 @@ function ProtectedRoute({ children, allowedRole }: { children: React.ReactNode, 
     return <Navigate to="/auth/login" replace />
   }
   
-  if (user.role !== allowedRole) {
-    // Redirect to their correct workspace
-    const routes: Record<string, string> = {
-      fleet_manager: '/fleet',
-      dispatcher: '/dispatch',
-      safety_officer: '/safety',
-      financial_analyst: '/finance'
-    }
-    return <Navigate to={routes[user.role || ''] || '/auth/login'} replace />
-  }
+  // Role checks temporarily disabled so you can navigate to any dashboard 
+  // (e.g., from fleet manager to dispatch) while we build out the ESG platform.
   
   return <>{children}</>
 }
