@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Search, Filter, Download, MoreVertical, Plus, X } from "lucide-react"
+import { Search, Filter, Download, MoreVertical, Plus, X, Copy, Check } from "lucide-react"
 
 import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
@@ -14,6 +14,8 @@ export function DriverDirectory() {
   const [drivers, setDrivers] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false)
+  const [credentials, setCredentials] = React.useState<{email: string, password: string} | null>(null)
+  const [copied, setCopied] = React.useState(false)
 
   const [formData, setFormData] = React.useState({
     driver_name: '',
@@ -43,15 +45,30 @@ export function DriverDirectory() {
   const handleAddDriver = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await axiosInstance.post('/drivers', formData)
-      toast.success('Driver added successfully')
-      setIsAddModalOpen(false)
+      const res = await axiosInstance.post('/drivers', formData)
+      
+      if(res.data?.data?.credentials) {
+        setCredentials(res.data.data.credentials)
+      } else {
+        toast.success('Driver added successfully')
+        setIsAddModalOpen(false)
+      }
+      
       fetchDrivers()
       setFormData({
         driver_name: '', license_number: '', license_type: 'CDL-A', license_expiry: '', status: 'Available', years_of_experience: 0
       })
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to add driver')
+    }
+  }
+
+  const handleCopyCredentials = () => {
+    if (credentials) {
+      navigator.clipboard.writeText(`Email: ${credentials.email}\nPassword: ${credentials.password}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success("Credentials copied to clipboard");
     }
   }
 
@@ -137,8 +154,8 @@ export function DriverDirectory() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
-                        <p className="font-medium text-text-primary">{driver.license_number}</p>
-                        <p className="text-xs text-text-muted">{driver.license_type} • Exp: {new Date(driver.license_expiry).toLocaleDateString()}</p>
+                         <p className="font-medium text-text-primary">{driver.license_number}</p>
+                         <p className="text-xs text-text-muted">{driver.license_type} • Exp: {new Date(driver.license_expiry).toLocaleDateString()}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -173,47 +190,71 @@ export function DriverDirectory() {
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-bg-base rounded-2xl w-full max-w-lg shadow-2xl p-6 relative">
-            <button onClick={() => setIsAddModalOpen(false)} className="absolute top-4 right-4 text-text-muted hover:text-text-primary">
+            <button onClick={() => { setIsAddModalOpen(false); setCredentials(null); }} className="absolute top-4 right-4 text-text-muted hover:text-text-primary">
               <X className="w-5 h-5" />
             </button>
             <h2 className="text-xl font-bold mb-4">Add New Driver</h2>
-            <form onSubmit={handleAddDriver} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Full Name</label>
-                  <Input required value={formData.driver_name} onChange={e => setFormData({...formData, driver_name: e.target.value})} placeholder="John Doe" />
+            
+            {credentials ? (
+              <div className="space-y-6">
+                <div className="bg-success-50 dark:bg-success-900/20 text-success-700 dark:text-success-400 p-4 rounded-xl border border-success-200 dark:border-success-800">
+                  <h3 className="font-bold mb-2">Driver Created Successfully!</h3>
+                  <p className="text-sm mb-4">Please share these login credentials securely with the driver. They will need this to access the Driver Dashboard.</p>
+                  
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg space-y-3 font-mono text-sm relative border border-gray-200 dark:border-gray-700">
+                    <div><span className="text-text-muted">Email:</span> {credentials.email}</div>
+                    <div><span className="text-text-muted">Password:</span> {credentials.password}</div>
+                    <Button 
+                      onClick={handleCopyCredentials} 
+                      size="sm" 
+                      variant="outline" 
+                      className="absolute top-2 right-2"
+                    >
+                      {copied ? <Check className="w-4 h-4 text-success-500" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">License Number</label>
-                  <Input required value={formData.license_number} onChange={e => setFormData({...formData, license_number: e.target.value})} placeholder="DL-1234567" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">License Type</label>
-                  <Input required value={formData.license_type} onChange={e => setFormData({...formData, license_type: e.target.value})} placeholder="CDL-A" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">License Expiry</label>
-                  <Input required type="date" value={formData.license_expiry} onChange={e => setFormData({...formData, license_expiry: e.target.value})} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Experience (Years)</label>
-                  <Input required type="number" value={formData.years_of_experience} onChange={e => setFormData({...formData, years_of_experience: parseInt(e.target.value)})} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Status</label>
-                  <select 
-                    className="flex h-10 w-full rounded-xl border border-gray-300 bg-surface-100 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
-                    value={formData.status} 
-                    onChange={e => setFormData({...formData, status: e.target.value})}
-                  >
-                    <option value="Available">Available</option>
-                    <option value="On Leave">On Leave</option>
-                    <option value="Suspended">Suspended</option>
-                  </select>
-                </div>
+                <Button onClick={() => { setIsAddModalOpen(false); setCredentials(null); }} className="w-full bg-blue-600 hover:bg-blue-700 text-white">Done</Button>
               </div>
-              <Button type="submit" className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white">Save Driver</Button>
-            </form>
+            ) : (
+              <form onSubmit={handleAddDriver} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Full Name</label>
+                    <Input required value={formData.driver_name} onChange={e => setFormData({...formData, driver_name: e.target.value})} placeholder="John Doe" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">License Number</label>
+                    <Input required value={formData.license_number} onChange={e => setFormData({...formData, license_number: e.target.value})} placeholder="DL-1234567" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">License Type</label>
+                    <Input required value={formData.license_type} onChange={e => setFormData({...formData, license_type: e.target.value})} placeholder="CDL-A" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">License Expiry</label>
+                    <Input required type="date" value={formData.license_expiry} onChange={e => setFormData({...formData, license_expiry: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Experience (Years)</label>
+                    <Input required type="number" value={formData.years_of_experience} onChange={e => setFormData({...formData, years_of_experience: parseInt(e.target.value)})} />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Status</label>
+                    <select 
+                      className="flex h-10 w-full rounded-xl border border-gray-300 bg-surface-100 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
+                      value={formData.status} 
+                      onChange={e => setFormData({...formData, status: e.target.value})}
+                    >
+                      <option value="Available">Available</option>
+                      <option value="On Leave">On Leave</option>
+                      <option value="Suspended">Suspended</option>
+                    </select>
+                  </div>
+                </div>
+                <Button type="submit" className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white">Save Driver & Generate Credentials</Button>
+              </form>
+            )}
           </div>
         </div>
       )}

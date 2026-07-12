@@ -58,6 +58,14 @@ app.use('/api/fuel', fuelRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
+// Incidents mock route for hackathon demo
+const memoryIncidents = [];
+app.get('/api/incidents', (req, res) => res.json({ success: true, data: memoryIncidents }));
+app.post('/api/incidents', (req, res) => {
+  memoryIncidents.unshift({ id: Date.now().toString(), date: new Date(), ...req.body });
+  res.json({ success: true, data: memoryIncidents[0] });
+});
+
 // Error Handling
 app.use(errorHandler);
 

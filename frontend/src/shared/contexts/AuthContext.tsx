@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { axiosInstance } from "../../services/api/axios"
 import { setStoredToken, removeStoredToken } from "../../services/utils/token"
 
-type Role = "fleet_manager" | "dispatcher" | "safety_officer" | "financial_analyst" | null;
+type Role = "fleet_manager" | "dispatcher" | "safety_officer" | "financial_analyst" | "driver" | string | null;
 
 interface User {
   id: string
@@ -44,16 +44,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStoredToken(token);
     
     // Convert role from backend if necessary
-    const roleMap: Record<string, Role> = {
+    const roleMap: Record<string, string> = {
       "Admin": "fleet_manager", // Default fallback if admin
       "Fleet Manager": "fleet_manager",
       "Dispatcher": "dispatcher",
       "Safety Officer": "safety_officer",
       "Financial Analyst": "financial_analyst",
+      "Driver": "driver",
       "fleet_manager": "fleet_manager",
       "dispatcher": "dispatcher",
       "safety_officer": "safety_officer",
-      "financial_analyst": "financial_analyst"
+      "financial_analyst": "financial_analyst",
+      "driver": "driver"
     };
 
     const userRole = roleMap[userData.role] || "fleet_manager";
@@ -74,6 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       case "dispatcher": navigate("/dispatch"); break;
       case "safety_officer": navigate("/safety"); break;
       case "financial_analyst": navigate("/finance"); break;
+      case "driver": navigate("/driver"); break;
       default: navigate("/"); break;
     }
   }

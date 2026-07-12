@@ -16,14 +16,7 @@ import {
   Legend
 } from 'recharts'
 
-const monthlyData = [
-  { month: 'Jan', revenue: 120000, expenses: 85000, profit: 35000 },
-  { month: 'Feb', revenue: 135000, expenses: 90000, profit: 45000 },
-  { month: 'Mar', revenue: 125000, expenses: 92000, profit: 33000 },
-  { month: 'Apr', revenue: 150000, expenses: 95000, profit: 55000 },
-  { month: 'May', revenue: 160000, expenses: 98000, profit: 62000 },
-  { month: 'Jun', revenue: 175000, expenses: 105000, profit: 70000 },
-]
+// Monthly data will be computed dynamically from the database
 
 const formatCurrencyCompact = (value: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -34,7 +27,81 @@ const formatCurrencyCompact = (value: number) => {
   }).format(value);
 };
 
+import { axiosInstance } from "../../../services/api/axios"
+
 export function FinancialAnalytics() {
+  const [monthlyData, setMonthlyData] = React.useState<any[]>([])
+  const [revenueGrowth, setRevenueGrowth] = React.useState(0)
+  
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [maintenanceRes, fuelRes, expenseRes, tripRes] = await Promise.all([
+          axiosInstance.get('/maintenance').catch(() => ({ data: { data: [] } })),
+          axiosInstance.get('/fuel').catch(() => ({ data: { data: [] } })),
+          axiosInstance.get('/expenses').catch(() => ({ data: { data: [] } })),
+          axiosInstance.get('/trips').catch(() => ({ data: { data: [] } }))
+        ])
+
+        const mLogs = maintenanceRes.data.data || []
+        const fLogs = fuelRes.data.data || []
+        const eLogs = expenseRes.data.data || []
+        const trips = tripRes.data.data || []
+
+        // Group by month
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        const currentMonthIdx = new Date().getMonth()
+        
+        // Let's generate data for the last 6 months up to current
+        const chartData = []
+        let totalRev = 0
+        
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date()
+          d.setMonth(currentMonthIdx - i)
+          const monthName = months[d.getMonth()]
+          const m = d.getMonth()
+          const y = d.getFullYear()
+          
+          let rev = 0
+          let exp = 0
+          
+          trips.forEach((t:any) => {
+            const td = new Date(t.created_at)
+            if (td.getMonth() === m && td.getFullYear() === y) rev += parseFloat(t.planned_distance) * 3.5 || 0
+          })
+          
+          mLogs.forEach((l:any) => {
+            const ld = new Date(l.date)
+            if (ld.getMonth() === m && ld.getFullYear() === y) exp += parseFloat(l.cost) || 0
+          })
+          
+          fLogs.forEach((l:any) => {
+            const ld = new Date(l.filled_date || l.created_at)
+            if (ld.getMonth() === m && ld.getFullYear() === y) exp += parseFloat(l.cost) || 0
+          })
+          
+          eLogs.forEach((l:any) => {
+            const ld = new Date(l.date_incurred || l.created_at)
+            if (ld.getMonth() === m && ld.getFullYear() === y) exp += parseFloat(l.amount) || 0
+          })
+
+          chartData.push({ month: monthName, revenue: rev, expenses: exp, profit: rev - exp })
+          totalRev += rev
+        }
+        
+        setMonthlyData(chartData)
+        if (chartData.length > 1) {
+          const first = chartData[0].revenue
+          const last = chartData[chartData.length-1].revenue
+          if(first > 0) setRevenueGrowth(Math.round(((last - first)/first)*100))
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    fetchData()
+  }, [])
   return (
     <div className="space-y-6 pb-8">
       {/* Header */}
@@ -126,7 +193,7 @@ export function FinancialAnalytics() {
            <CardContent className="space-y-6">
               <div className="p-4 bg-success-50 dark:bg-success-900/10 rounded-xl border border-success-100 dark:border-success-800/30">
                  <h4 className="font-bold text-success-800 dark:text-success-400 mb-1">Revenue Growth</h4>
-                 <p className="text-sm text-success-700 dark:text-success-300">Revenue is up <span className="font-bold">45%</span> since January, significantly outpacing the 23% increase in operational expenses.</p>
+                 <p className="text-sm text-success-700 dark:text-success-300">Revenue is changing by <span className="font-bold">{revenueGrowth}%</span> over the period shown based on recent trip data.</p>
               </div>
               <div className="p-4 bg-warning-50 dark:bg-warning-900/10 rounded-xl border border-warning-100 dark:border-warning-800/30">
                  <h4 className="font-bold text-warning-800 dark:text-warning-400 mb-1">Fuel Cost Alert</h4>
