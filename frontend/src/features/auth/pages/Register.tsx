@@ -41,10 +41,10 @@ export function Register() {
   }
 
   return (
-    <div className="flex flex-col space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
-          Create an account
+    <div className="flex flex-col space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 my-8">
+      <div className="flex flex-col space-y-2">
+        <h1 className="text-3xl font-semibold tracking-tight text-text-primary">
+          Create Account
         </h1>
         <p className="text-sm text-text-muted">
           Enter your details below to create your account

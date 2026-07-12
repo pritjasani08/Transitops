@@ -1,9 +1,11 @@
 import * as React from "react"
-import { Search, Filter, Check, Trash2, Archive, Bell, Truck, AlertTriangle, DollarSign, Activity } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { Search, Filter, Check, Trash2, Archive, Bell, Truck, AlertTriangle, DollarSign, Activity, ChevronLeft } from "lucide-react"
 import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
 
 export function NotificationCenter() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = React.useState("inbox")
   const [searchTerm, setSearchTerm] = React.useState("")
 
@@ -37,7 +39,10 @@ export function NotificationCenter() {
     <div className="flex h-[calc(100vh-6rem)] overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
       {/* Sidebar */}
       <div className="w-64 border-r border-gray-200 bg-gray-50/50 flex flex-col dark:border-gray-800 dark:bg-gray-900/50">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-8 w-8 -ml-2 text-gray-500 hover:text-gray-900 dark:hover:text-gray-100">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
           <h2 className="text-lg font-bold">Notifications</h2>
         </div>
         <div className="p-2 space-y-1 flex-1 overflow-y-auto">

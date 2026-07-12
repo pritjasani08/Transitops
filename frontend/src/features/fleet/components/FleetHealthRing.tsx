@@ -13,7 +13,7 @@ export function FleetHealthRing({ score, size = 160, strokeWidth = 12 }: FleetHe
   const offset = circumference - (score / 100) * circumference;
 
   const getColor = (val: number) => {
-    if (val >= 80) return "var(--color-secondary-500)";
+    if (val >= 80) return "var(--color-success-500)";
     if (val >= 50) return "var(--color-warning-500)";
     return "var(--color-danger-500)";
   };
@@ -30,7 +30,7 @@ export function FleetHealthRing({ score, size = 160, strokeWidth = 12 }: FleetHe
           stroke="currentColor"
           strokeWidth={strokeWidth}
           fill="transparent"
-          className="text-gray-100 dark:text-gray-800"
+          className="text-gray-200 dark:text-gray-700/50"
         />
         <motion.circle
           cx={size / 2}
