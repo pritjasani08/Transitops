@@ -6,13 +6,11 @@ import { useNavigate, Link } from "react-router-dom"
 import { useAuth } from "../../../shared/contexts/AuthContext"
 import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
+import toast from "react-hot-toast"
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
-  role: z.enum(["fleet_manager", "dispatcher", "safety_officer", "financial_analyst"], {
-    message: "Please select a role to demo",
-  }),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -23,15 +21,16 @@ export function Login() {
   
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      role: "fleet_manager"
-    }
   })
 
   const onSubmit = async (data: LoginFormValues) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    login(data.role)
+    try {
+      await login(data)
+      toast.success("Welcome back!")
+    } catch (error: any) {
+      console.error("Login failed", error)
+      toast.error(error.response?.data?.message || "Invalid credentials. Please try again.")
+    }
   }
 
   return (
@@ -86,26 +85,7 @@ export function Login() {
               )}
             </div>
             
-            <div className="grid gap-2">
-              <label className="text-sm font-medium text-text-primary" htmlFor="role">
-                Demo Role
-              </label>
-              <select 
-                id="role" 
-                className="flex h-10 w-full rounded-xl border border-gray-300 bg-surface-100 px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary"
-                {...register("role")}
-              >
-                <option value="fleet_manager">Fleet Manager</option>
-                <option value="dispatcher">Dispatcher</option>
-                <option value="safety_officer">Safety Officer</option>
-                <option value="financial_analyst">Financial Analyst</option>
-              </select>
-              {errors.role && (
-                <p className="text-xs text-danger-500">{errors.role.message}</p>
-              )}
-            </div>
-
-            <Button disabled={isSubmitting} isLoading={isSubmitting} type="submit" className="mt-2">
+            <Button disabled={isSubmitting} isLoading={isSubmitting} type="submit" className="mt-6">
               Sign In
             </Button>
           </div>
