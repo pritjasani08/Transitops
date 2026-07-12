@@ -5,15 +5,12 @@ import * as z from "zod"
 import { useNavigate, Link } from "react-router-dom"
 import { useAuth } from "../../../shared/contexts/AuthContext"
 import { Button } from "../../../shared/components/ui/button"
-import { FormInput } from "../components/FormInput"
-import { PasswordInput } from "../components/PasswordInput"
-import { SocialLogin } from "../components/SocialLogin"
-import { AuthFooter } from "../components/AuthFooter"
+import { Input } from "../../../shared/components/ui/input"
+import toast from "react-hot-toast"
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: "Email is required" }).email({ message: "Invalid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
-  rememberMe: z.boolean().optional(),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -24,16 +21,16 @@ export function Login() {
   
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      rememberMe: false
-    }
   })
 
   const onSubmit = async (data: LoginFormValues) => {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    // Default to fleet_manager since the enterprise UI removed the dropdown
-    login("fleet_manager")
+    try {
+      await login(data)
+      toast.success("Welcome back!")
+    } catch (error: any) {
+      console.error("Login failed", error)
+      toast.error(error.response?.data?.message || "Invalid credentials. Please try again.")
+    }
   }
 
   return (
@@ -80,15 +77,12 @@ export function Login() {
                 className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/50"
                 {...register("rememberMe")}
               />
-              <label
-                htmlFor="rememberMe"
-                className="text-sm font-medium leading-none text-text-primary peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Remember me
-              </label>
+              {errors.password && (
+                <p className="text-xs text-danger-500">{errors.password.message}</p>
+              )}
             </div>
-
-            <Button disabled={isSubmitting} isLoading={isSubmitting} type="submit" className="mt-2 h-11 text-base">
+            
+            <Button disabled={isSubmitting} isLoading={isSubmitting} type="submit" className="mt-6">
               Sign In
             </Button>
           </div>

@@ -2,24 +2,17 @@ import * as React from "react"
 import { NavLink, useLocation } from "react-router-dom"
 import { cn } from "../../../shared/utils/cn"
 import { useAuth } from "../../../shared/contexts/AuthContext"
-import { LogOut, Settings, User } from "lucide-react"
+import { ROLE_CONFIGURATION, RoleId } from "../../../shared/config/roles/roleConfiguration"
 
-export interface SidebarItem {
-  name: string;
-  href: string;
-  icon: React.ElementType;
-}
-
-interface SidebarProps {
-  title: string;
-  items: SidebarItem[];
-}
-
-export function Sidebar({ title, items }: SidebarProps) {
-  const { user, logout } = useAuth()
+export function Sidebar() {
+  const { user } = useAuth()
   const location = useLocation()
   
-  // Extract the base workspace path (e.g., '/fleet', '/dispatch')
+  const roleConfig = user?.role ? ROLE_CONFIGURATION[user.role as RoleId] : null
+  const items = roleConfig?.sidebar || []
+  const title = roleConfig?.workspace ? `${roleConfig.workspace} Workspace` : "Workspace"
+  
+  // Extract the base workspace path
   const workspacePath = `/${location.pathname.split('/')[1] || 'fleet'}`
 
   return (
@@ -28,7 +21,7 @@ export function Sidebar({ title, items }: SidebarProps) {
         <div className="h-8 w-8 rounded-lg bg-primary mr-3 flex items-center justify-center text-white shadow-md shadow-primary/20 ring-1 ring-primary/50">
           <span className="font-bold text-sm">TH</span>
         </div>
-        TransitHub
+        TransitOps
       </div>
       
       <div className="px-6 py-2">
@@ -61,38 +54,6 @@ export function Sidebar({ title, items }: SidebarProps) {
           </NavLink>
         ))}
       </nav>
-
-      <div className="border-t border-border-subtle p-4">
-        <NavLink 
-           to={`${workspacePath}/profile`}
-           className={({ isActive }) => cn("flex items-center gap-3 px-2 mb-4 p-2 rounded-xl transition-colors", isActive ? "bg-surface-200" : "hover:bg-surface-200")}
-        >
-          <div className="h-10 w-10 rounded-full bg-surface-200 flex items-center justify-center">
-            <User className="h-5 w-5 text-text-muted" />
-          </div>
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <span className="text-sm font-medium text-text-primary truncate">{user?.name}</span>
-            <span className="text-xs text-text-muted truncate capitalize">{user?.role?.replace('_', ' ')}</span>
-          </div>
-        </NavLink>
-        
-        <div className="space-y-1">
-          <NavLink 
-            to={`${workspacePath}/settings`}
-            className={({ isActive }) => cn("w-full group flex items-center rounded-xl px-3 py-2 text-sm font-medium transition-all", isActive ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-surface-200 hover:text-text-primary")}
-          >
-            <Settings className="mr-3 h-5 w-5 flex-shrink-0" />
-            Settings
-          </NavLink>
-          <button 
-            onClick={logout}
-            className="w-full group flex items-center rounded-xl px-3 py-2 text-sm font-medium text-text-muted hover:bg-danger-500/10 hover:text-danger-500 transition-all"
-          >
-            <LogOut className="mr-3 h-5 w-5 flex-shrink-0" />
-            Logout
-          </button>
-        </div>
-      </div>
     </div>
   )
 }
