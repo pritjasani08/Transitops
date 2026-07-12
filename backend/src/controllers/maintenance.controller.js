@@ -1,5 +1,5 @@
 const BaseRepository = require('../repositories/base.repository');
-const repo = new BaseRepository('maintenances');
+const repo = new BaseRepository('maintenance_logs');
 
 exports.create = async (req, res, next) => {
   try {

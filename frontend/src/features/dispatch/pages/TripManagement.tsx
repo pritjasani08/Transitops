@@ -14,25 +14,56 @@ import {
 import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
 import { Card, CardContent, CardHeader } from "../../../shared/components/ui/card"
-import { MOCK_TRIPS } from "../utils/mockData"
 import { TripStatusBadge } from "../components/TripStatusBadge"
 import { PriorityBadge } from "../components/PriorityBadge"
-import { Trip } from "../types"
+import { axiosInstance } from "../../../services/api/axios"
 
 export function TripManagement() {
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = React.useState("")
-  
-  const filteredTrips = MOCK_TRIPS.filter(trip => 
-    trip.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.referenceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.source.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    trip.destination.address.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const [loading, setLoading] = React.useState(true)
+  const [trips, setTrips] = React.useState<any[]>([])
 
-  const handleRowClick = (id: string) => {
-    navigate(`/dispatch/trips/${id}`)
-  }
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const [tripsRes, driversRes, vehiclesRes] = await Promise.all([
+          axiosInstance.get('/trips'),
+          axiosInstance.get('/drivers'),
+          axiosInstance.get('/vehicles')
+        ]);
+        
+        const tripData = tripsRes.data.data || [];
+        const drivers = driversRes.data.data || [];
+        const vehicles = vehiclesRes.data.data || [];
+
+        const enrichedTrips = tripData.map((t: any) => {
+          const d = drivers.find((dr: any) => dr.id === t.driver_id);
+          const v = vehicles.find((ve: any) => ve.id === t.vehicle_id);
+          return {
+            ...t,
+            driverName: d ? d.driver_name : 'Unassigned',
+            vehicleReg: v ? v.registration_number : 'Unknown'
+          };
+        });
+
+        setTrips(enrichedTrips);
+      } catch (e) {
+        console.error('Failed to fetch trips', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [])
+  
+  const filteredTrips = trips.filter(trip => 
+    trip.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (trip.trip_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (trip.source || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (trip.destination || '').toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="space-y-6 pb-8">
@@ -40,7 +71,7 @@ export function TripManagement() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-text-primary">Trip Management</h1>
-          <p className="text-text-muted mt-1">Manage, filter, and track all active and scheduled trips.</p>
+          <p className="text-text-muted mt-1">Live data from Database: Manage and track all active trips.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" className="gap-2">
@@ -84,11 +115,7 @@ export function TripManagement() {
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-text-muted uppercase bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
               <tr>
-                <th className="px-6 py-4 font-semibold whitespace-nowrap">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-text-primary">
-                    Trip ID <ArrowUpDown className="h-3 w-3" />
-                  </div>
-                </th>
+                <th className="px-6 py-4 font-semibold whitespace-nowrap">Trip ID</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Status</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Priority</th>
                 <th className="px-6 py-4 font-semibold whitespace-nowrap">Source &rarr; Destination</th>
@@ -97,29 +124,36 @@ export function TripManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filteredTrips.map((trip: Trip) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-text-muted">Loading live trips...</td>
+                </tr>
+              ) : filteredTrips.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-text-muted text-lg">No data found in database. Create a trip to see it here.</td>
+                </tr>
+              ) : filteredTrips.map((trip: any) => (
                 <tr 
                   key={trip.id} 
                   className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
-                  onClick={() => handleRowClick(trip.id)}
+                  onClick={() => navigate(`/dispatch/trips/${trip.id}`)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-text-primary">{trip.id}</div>
-                    <div className="text-xs text-text-muted">{trip.referenceId}</div>
+                    <div className="font-medium text-text-primary">{trip.trip_number || trip.id.substring(0,8)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <TripStatusBadge status={trip.status} />
+                    <TripStatusBadge status={trip.trip_status || 'Draft'} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <PriorityBadge priority={trip.priority} />
+                    <PriorityBadge priority="Medium" />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap max-w-[200px] truncate">
-                    <div className="text-text-primary truncate">{trip.source.address.split(',')[0]}</div>
-                    <div className="text-xs text-text-muted truncate">to {trip.destination.address.split(',')[0]}</div>
+                    <div className="text-text-primary truncate">{trip.source}</div>
+                    <div className="text-xs text-text-muted truncate">to {trip.destination}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-text-primary">{trip.driverName || <span className="text-gray-400 italic">Unassigned</span>}</div>
-                    <div className="text-xs text-text-muted">{trip.vehicleReg || ''}</div>
+                    <div className="text-text-primary">{trip.driverName}</div>
+                    <div className="text-xs text-text-muted">{trip.vehicleReg}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
@@ -128,25 +162,9 @@ export function TripManagement() {
                   </td>
                 </tr>
               ))}
-              {filteredTrips.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-text-muted">
-                    No trips found matching your criteria.
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </CardContent>
-        {/* Pagination placeholder */}
-        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-sm text-text-muted">
-          <div>Showing 1 to {filteredTrips.length} of {filteredTrips.length} entries</div>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled><ChevronLeft className="h-4 w-4" /></Button>
-            <Button variant="outline" size="icon" className="h-8 w-8 bg-gray-100 dark:bg-gray-800">1</Button>
-            <Button variant="outline" size="icon" className="h-8 w-8"><ChevronRight className="h-4 w-4" /></Button>
-          </div>
-        </div>
       </Card>
     </div>
   )

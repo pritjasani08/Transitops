@@ -2,10 +2,12 @@ import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { Check, ChevronRight, Save, Navigation, Package, Truck, User, Search, AlertTriangle } from "lucide-react"
+import toast from "react-hot-toast"
 
 import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/components/ui/card"
+import { axiosInstance } from "../../../services/api/axios"
 
 const STEPS = [
   { id: 1, title: 'Trip Info', icon: Navigation },
@@ -20,8 +22,62 @@ export function CreateTripWizard() {
   const navigate = useNavigate()
   const [currentStep, setCurrentStep] = React.useState(1)
 
+  const [vehicles, setVehicles] = React.useState<any[]>([])
+  const [drivers, setDrivers] = React.useState<any[]>([])
+  
+  const [formData, setFormData] = React.useState({
+    trip_number: `TRP-${Date.now().toString().slice(-6)}`,
+    source: '',
+    destination: '',
+    cargo_weight: '',
+    planned_distance: '100', // Default mock distance
+    vehicle_id: '',
+    driver_id: ''
+  })
+
+  React.useEffect(() => {
+    const fetchResources = async () => {
+      try {
+        const [vRes, dRes] = await Promise.all([
+          axiosInstance.get('/vehicles'),
+          axiosInstance.get('/drivers')
+        ])
+        setVehicles(vRes.data.data || [])
+        setDrivers(dRes.data.data || [])
+      } catch (err) {
+        console.error("Failed to load resources")
+      }
+    }
+    fetchResources()
+  }, [])
+
   const handleNext = () => setCurrentStep(prev => Math.min(prev + 1, STEPS.length))
   const handlePrev = () => setCurrentStep(prev => Math.max(prev - 1, 1))
+
+  const handleCreateTrip = async () => {
+    try {
+      if (!formData.source || !formData.destination || !formData.cargo_weight || !formData.vehicle_id || !formData.driver_id) {
+        toast.error("Please fill all required fields before dispatching!")
+        return;
+      }
+      
+      const payload = {
+        ...formData,
+        cargo_weight: parseFloat(formData.cargo_weight),
+        planned_distance: parseFloat(formData.planned_distance),
+        trip_status: 'Dispatched'
+      }
+
+      await axiosInstance.post('/trips', payload)
+      toast.success("Trip dispatched successfully!")
+      navigate('/dispatch/trips')
+    } catch (err) {
+      toast.error("Failed to dispatch trip")
+    }
+  }
+
+  const selectedVehicle = vehicles.find(v => v.id === formData.vehicle_id)
+  const selectedDriver = drivers.find(d => d.id === formData.driver_id)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-8">
@@ -29,15 +85,11 @@ export function CreateTripWizard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-text-primary">Create New Trip</h1>
-          <p className="text-text-muted mt-1">Configure and dispatch a new trip.</p>
+          <p className="text-text-muted mt-1">Configure and dispatch a new trip connected to live DB.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={() => navigate('/dispatch/trips')} className="gap-2">
             Cancel
-          </Button>
-          <Button variant="secondary" className="gap-2">
-            <Save className="h-4 w-4" />
-            Save Draft
           </Button>
         </div>
       </div>
@@ -93,17 +145,8 @@ export function CreateTripWizard() {
                   <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Reference ID (e.g. Order Number)</label>
-                      <Input placeholder="ORD-XXXXX" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Priority</label>
-                      <select className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                        <option>Low</option>
-                        <option>Medium</option>
-                        <option>High</option>
-                        <option>Critical</option>
-                      </select>
+                      <label className="text-sm font-medium">Trip Number (Auto-generated)</label>
+                      <Input value={formData.trip_number} readOnly className="bg-gray-50" />
                     </div>
                   </div>
                 </div>
@@ -114,20 +157,20 @@ export function CreateTripWizard() {
                   <h3 className="text-lg font-semibold border-b pb-2">Route Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Origin Address</label>
-                      <Input placeholder="Enter pickup location" />
+                      <label className="text-sm font-medium">Origin Address *</label>
+                      <Input 
+                        placeholder="e.g. New York, NY" 
+                        value={formData.source}
+                        onChange={(e) => setFormData({...formData, source: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Destination Address</label>
-                      <Input placeholder="Enter delivery location" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Scheduled Pickup Time</label>
-                      <Input type="datetime-local" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Expected Delivery Time</label>
-                      <Input type="datetime-local" />
+                      <label className="text-sm font-medium">Destination Address *</label>
+                      <Input 
+                        placeholder="e.g. Boston, MA" 
+                        value={formData.destination}
+                        onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                      />
                     </div>
                   </div>
                 </div>
@@ -138,24 +181,22 @@ export function CreateTripWizard() {
                   <h3 className="text-lg font-semibold border-b pb-2">Cargo Specifications</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Total Weight (lbs)</label>
-                      <Input type="number" placeholder="0" />
+                      <label className="text-sm font-medium">Total Weight (lbs) *</label>
+                      <Input 
+                        type="number" 
+                        placeholder="5000" 
+                        value={formData.cargo_weight}
+                        onChange={(e) => setFormData({...formData, cargo_weight: e.target.value})}
+                      />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Cargo Category</label>
-                      <select className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
-                        <option>General Freight</option>
-                        <option>Refrigerated</option>
-                        <option>Electronics</option>
-                        <option>Fragile</option>
-                      </select>
+                      <label className="text-sm font-medium">Planned Distance (miles)</label>
+                      <Input 
+                        type="number" 
+                        value={formData.planned_distance}
+                        onChange={(e) => setFormData({...formData, planned_distance: e.target.value})}
+                      />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 p-3 bg-warning-50 border border-warning-200 rounded-lg text-warning-800">
-                    <input type="checkbox" id="hazmat" className="rounded text-warning-600 focus:ring-warning-500" />
-                    <label htmlFor="hazmat" className="text-sm font-medium flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4" /> This cargo contains hazardous materials (HAZMAT)
-                    </label>
                   </div>
                 </div>
               )}
@@ -163,11 +204,18 @@ export function CreateTripWizard() {
               {currentStep === 4 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold border-b pb-2">Vehicle Assignment</h3>
-                  <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center min-h-[150px] text-center">
-                    <Truck className="h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-sm font-medium text-text-primary">No vehicle selected</p>
-                    <p className="text-xs text-text-muted mt-1">Select from available vehicles matching cargo requirements.</p>
-                    <Button variant="outline" size="sm" className="mt-4">Browse Vehicles</Button>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Vehicle from Fleet *</label>
+                    <select 
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={formData.vehicle_id}
+                      onChange={(e) => setFormData({...formData, vehicle_id: e.target.value})}
+                    >
+                      <option value="">-- Select a Vehicle --</option>
+                      {vehicles.map(v => (
+                        <option key={v.id} value={v.id}>{v.registration_number} - {v.make} {v.model}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
@@ -175,11 +223,18 @@ export function CreateTripWizard() {
               {currentStep === 5 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold border-b pb-2">Driver Assignment</h3>
-                  <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/50 flex flex-col items-center justify-center min-h-[150px] text-center">
-                    <User className="h-8 w-8 text-gray-400 mb-2" />
-                    <p className="text-sm font-medium text-text-primary">No driver assigned</p>
-                    <p className="text-xs text-text-muted mt-1">Select an available driver with required endorsements.</p>
-                    <Button variant="outline" size="sm" className="mt-4">Browse Drivers</Button>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Available Driver *</label>
+                    <select 
+                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={formData.driver_id}
+                      onChange={(e) => setFormData({...formData, driver_id: e.target.value})}
+                    >
+                      <option value="">-- Select a Driver --</option>
+                      {drivers.map(d => (
+                        <option key={d.id} value={d.id}>{d.driver_name} (License: {d.license_number})</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
@@ -187,12 +242,15 @@ export function CreateTripWizard() {
               {currentStep === 6 && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold border-b pb-2">Review & Confirm</h3>
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-3">
-                    <p className="text-sm text-text-muted">Review trip details before dispatching. You can save as draft or dispatch immediately.</p>
-                    {/* Summary fields would go here */}
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg space-y-4">
+                    <p className="text-sm text-text-muted">Review trip details before dispatching. This will save directly to the database.</p>
                     <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div><span className="font-medium">Priority:</span> High</div>
-                      <div><span className="font-medium">Cargo:</span> Electronics (5000 lbs)</div>
+                      <div><span className="font-medium text-text-muted">Trip Number:</span> <br/>{formData.trip_number}</div>
+                      <div><span className="font-medium text-text-muted">Route:</span> <br/>{formData.source || 'N/A'} &rarr; {formData.destination || 'N/A'}</div>
+                      <div><span className="font-medium text-text-muted">Cargo:</span> <br/>{formData.cargo_weight || '0'} lbs</div>
+                      <div><span className="font-medium text-text-muted">Distance:</span> <br/>{formData.planned_distance || '0'} miles</div>
+                      <div><span className="font-medium text-text-muted">Assigned Vehicle:</span> <br/>{selectedVehicle?.registration_number || 'None Selected'}</div>
+                      <div><span className="font-medium text-text-muted">Assigned Driver:</span> <br/>{selectedDriver?.driver_name || 'None Selected'}</div>
                     </div>
                   </div>
                 </div>
@@ -215,7 +273,7 @@ export function CreateTripWizard() {
                 Continue <ChevronRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button className="gap-2 bg-success-600 hover:bg-success-700 text-white" onClick={() => navigate('/dispatch/trips')}>
+              <Button className="gap-2 bg-success-600 hover:bg-success-700 text-white" onClick={handleCreateTrip}>
                 <Check className="h-4 w-4" /> Confirm & Dispatch
               </Button>
             )}

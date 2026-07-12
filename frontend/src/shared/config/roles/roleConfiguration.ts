@@ -57,7 +57,6 @@ export const ROLE_CONFIGURATION: Record<RoleId, RoleConfig> = {
       { name: "Dashboard", href: "/dispatch", icon: LayoutDashboard },
       { name: "Trips", href: "/dispatch/trips", icon: Route },
       { name: "Dispatch", href: "/dispatch/board", icon: Activity },
-      { name: "Vehicles", href: "/fleet/registry", icon: Car },
     ]
   },
   safety_officer: {

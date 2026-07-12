@@ -19,14 +19,14 @@ class BaseRepository {
       query += ` ORDER BY ${options.orderBy} ${options.orderDesc ? 'DESC' : 'ASC'}`;
     }
 
-    if (options.limit) {
+    if (options.limit !== undefined) {
       query += ` LIMIT ?`;
-      params.push(options.limit);
+      params.push(parseInt(options.limit));
     }
 
-    if (options.offset) {
+    if (options.offset !== undefined) {
       query += ` OFFSET ?`;
-      params.push(options.offset);
+      params.push(parseInt(options.offset));
     }
 
     const { rows } = await this.db.query(query, params);
