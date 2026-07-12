@@ -1,6 +1,5 @@
 import * as React from "react"
-import { Bell, Search, Sun, Moon } from "lucide-react"
-import { Bell, Search, User, LogOut, Settings, ChevronDown, Check } from "lucide-react"
+import { Bell, Search, Sun, Moon, User, LogOut, Settings, ChevronDown, Check } from "lucide-react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { CommandCenter } from "../../../features/shared/components/CommandCenter"
 import { useAuth } from "../../../shared/contexts/AuthContext"

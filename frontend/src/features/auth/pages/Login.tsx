@@ -7,10 +7,15 @@ import { useAuth } from "../../../shared/contexts/AuthContext"
 import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
 import toast from "react-hot-toast"
+import { FormInput } from "../components/FormInput"
+import { PasswordInput } from "../components/PasswordInput"
+import { SocialLogin } from "../components/SocialLogin"
+import { AuthFooter } from "../components/AuthFooter"
 
 const loginSchema = z.object({
   email: z.string().min(1, { message: "Email is required" }).email({ message: "Invalid email address" }),
   password: z.string().min(1, { message: "Password is required" }),
+  rememberMe: z.boolean().optional(),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
