@@ -1,5 +1,6 @@
 import * as React from "react"
 import { motion } from "framer-motion"
+import { useNavigate } from "react-router-dom"
 import { 
   Truck, 
   Wrench, 
@@ -67,6 +68,7 @@ const aiInsights: AIRecommendation[] = [
 ]
 
 export function FleetDashboard() {
+  const navigate = useNavigate();
   const currentDate = new Intl.DateTimeFormat('en-US', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
   }).format(new Date());
@@ -80,11 +82,7 @@ export function FleetDashboard() {
           <p className="text-text-muted mt-1">{currentDate}</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Report
-          </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => navigate('/fleet/registry')}>
             <Plus className="h-4 w-4" />
             Add Vehicle
           </Button>

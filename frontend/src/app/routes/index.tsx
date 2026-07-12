@@ -145,6 +145,7 @@ export function AppRoutes() {
       }>
         <Route index element={<FleetDashboard />} />
         <Route path="registry" element={<VehicleRegistry />} />
+        <Route path="drivers" element={<DriverDirectory />} />
         <Route path="registry/:id" element={<VehicleDetails />} />
         <Route path="documents" element={<VehicleDocuments />} />
         <Route path="maintenance" element={<MaintenanceCenter />} />

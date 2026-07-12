@@ -41,7 +41,7 @@ export const ROLE_CONFIGURATION: Record<RoleId, RoleConfig> = {
     sidebar: [
       { name: "Dashboard", href: "/fleet", icon: LayoutDashboard },
       { name: "Vehicles", href: "/fleet/registry", icon: Car },
-      { name: "Drivers", href: "/safety/drivers", icon: Users },
+      { name: "Drivers", href: "/fleet/drivers", icon: Users },
       { name: "Maintenance", href: "/fleet/maintenance", icon: Wrench },
       { name: "Finance", href: "/finance", icon: DollarSign },
     ]

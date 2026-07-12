@@ -16,7 +16,8 @@ import {
   Download, 
   Plus, 
   MoreVertical,
-  ArrowUpDown
+  ArrowUpDown,
+  X
 } from "lucide-react"
 
 import { Vehicle } from "../types"
@@ -25,20 +26,13 @@ import { Input } from "../../../shared/components/ui/input"
 import { Badge } from "../../../shared/components/ui/badge"
 import { Card } from "../../../shared/components/ui/card"
 import { cn } from "../../../shared/utils/cn"
-
-// Mock Data
-const mockVehicles: Vehicle[] = [
-  { id: "1", registration: "MH-12-AB-1234", make: "Volvo", model: "FH16", year: 2022, type: "Heavy Truck", status: "Available", odometer: 45000, healthScore: 92, lastService: "2023-10-15", nextService: "2024-04-15" },
-  { id: "2", registration: "NY-05-XY-9876", make: "Freightliner", model: "Cascadia", year: 2021, type: "Heavy Truck", status: "On Trip", odometer: 120000, healthScore: 85, lastService: "2023-08-20", nextService: "2024-02-20" },
-  { id: "3", registration: "CA-01-ZZ-5555", make: "Peterbilt", model: "579", year: 2023, type: "Heavy Truck", status: "In Shop", odometer: 15000, healthScore: 45, lastService: "2024-01-10", nextService: "2024-01-25" },
-  { id: "4", registration: "TX-99-BB-4444", make: "Kenworth", model: "T680", year: 2020, type: "Heavy Truck", status: "Available", odometer: 210000, healthScore: 78, lastService: "2023-11-05", nextService: "2024-05-05" },
-  { id: "5", registration: "FL-22-CC-3333", make: "Mack", model: "Anthem", year: 2022, type: "Heavy Truck", status: "On Trip", odometer: 65000, healthScore: 88, lastService: "2023-09-12", nextService: "2024-03-12" },
-]
+import { axiosInstance } from "../../../services/api/axios"
+import toast from "react-hot-toast"
 
 const columnHelper = createColumnHelper<Vehicle>()
 
 const columns = [
-  columnHelper.accessor('registration', {
+  columnHelper.accessor('registration_number', {
     header: ({ column }) => {
       return (
         <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} className="-ml-4 h-8 px-4 font-semibold">
@@ -47,7 +41,7 @@ const columns = [
         </Button>
       )
     },
-    cell: info => <span className="font-mono font-medium">{info.getValue()}</span>,
+    cell: info => <span className="font-mono font-medium">{info.getValue() || '-'}</span>,
   }),
   columnHelper.accessor(row => `${row.make} ${row.model}`, {
     id: 'makeModel',
@@ -57,41 +51,24 @@ const columns = [
   columnHelper.accessor('status', {
     header: 'Status',
     cell: info => {
-      const val = info.getValue()
+      const val = info.getValue() || 'Available'
       return (
         <Badge variant={
           val === 'Available' ? 'success' : 
           val === 'On Trip' ? 'default' : 
-          val === 'In Shop' ? 'danger' : 'secondary'
+          val === 'Maintenance' ? 'danger' : 'secondary'
         }>
           {val}
         </Badge>
       )
     }
   }),
-  columnHelper.accessor('healthScore', {
-    header: 'Health Score',
-    cell: info => {
-      const score = info.getValue()
-      return (
-        <div className="flex items-center gap-2">
-          <div className="w-16 h-2 rounded-full bg-gray-100 overflow-hidden">
-            <div 
-              className={cn("h-full rounded-full", score >= 80 ? "bg-secondary-500" : score >= 50 ? "bg-warning-500" : "bg-danger-500")}
-              style={{ width: `${score}%` }}
-            />
-          </div>
-          <span className="font-mono text-sm">{score}</span>
-        </div>
-      )
-    }
-  }),
   columnHelper.accessor('odometer', {
     header: 'Odometer',
-    cell: info => <span className="font-mono text-sm">{info.getValue().toLocaleString()} km</span>,
+    cell: info => <span className="font-mono text-sm">{(info.getValue() || 0).toLocaleString()} km</span>,
   }),
-  columnHelper.accessor('nextService', {
-    header: 'Next Service',
+  columnHelper.accessor('type', {
+    header: 'Type',
     cell: info => <span className="text-text-muted">{info.getValue()}</span>,
   }),
   columnHelper.display({
@@ -108,9 +85,45 @@ export function VehicleRegistry() {
   const navigate = useNavigate();
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = React.useState('')
+  const [vehicles, setVehicles] = React.useState<Vehicle[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [isAddModalOpen, setIsAddModalOpen] = React.useState(false)
+
+  // Form states
+  const [formData, setFormData] = React.useState({
+    registration_number: '', make: '', model: '', year: new Date().getFullYear(), type: 'Heavy Truck', maximum_load_capacity: 5000, fuel_type: 'Diesel'
+  })
+
+  const fetchVehicles = async () => {
+    try {
+      setLoading(true)
+      const res = await axiosInstance.get('/vehicles')
+      setVehicles(res.data.data)
+    } catch (err) {
+      toast.error('Failed to load vehicles')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  React.useEffect(() => {
+    fetchVehicles()
+  }, [])
+
+  const handleAddVehicle = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      await axiosInstance.post('/vehicles', formData)
+      toast.success('Vehicle added successfully')
+      setIsAddModalOpen(false)
+      fetchVehicles()
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to add vehicle')
+    }
+  }
 
   const table = useReactTable({
-    data: mockVehicles,
+    data: vehicles,
     columns,
     state: {
       sorting,
@@ -136,7 +149,7 @@ export function VehicleRegistry() {
             <Download className="h-4 w-4" />
             Export
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => setIsAddModalOpen(true)}>
             <Plus className="h-4 w-4" />
             Add Vehicle
           </Button>
@@ -183,13 +196,14 @@ export function VehicleRegistry() {
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.map(row => (
+              {loading ? (
+                <tr><td colSpan={columns.length} className="px-6 py-12 text-center text-text-muted">Loading vehicles...</td></tr>
+              ) : table.getRowModel().rows.map(row => (
                 <motion.tr 
                   key={row.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/fleet/registry/${row.original.id}`)}
+                  className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   {row.getVisibleCells().map(cell => (
                     <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
@@ -198,7 +212,7 @@ export function VehicleRegistry() {
                   ))}
                 </motion.tr>
               ))}
-              {table.getRowModel().rows.length === 0 && (
+              {!loading && table.getRowModel().rows.length === 0 && (
                 <tr>
                   <td colSpan={columns.length} className="px-6 py-12 text-center text-text-muted">
                     No vehicles found matching your criteria.
@@ -212,28 +226,55 @@ export function VehicleRegistry() {
         {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/30">
           <div className="text-sm text-text-muted">
-            Showing <span className="font-medium text-text-primary">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> to <span className="font-medium text-text-primary">{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}</span> of <span className="font-medium text-text-primary">{table.getFilteredRowModel().rows.length}</span> results
+            Showing <span className="font-medium text-text-primary">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + (table.getFilteredRowModel().rows.length > 0 ? 1 : 0)}</span> to <span className="font-medium text-text-primary">{Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)}</span> of <span className="font-medium text-text-primary">{table.getFilteredRowModel().rows.length}</span> results
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              Next
-            </Button>
+            <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Previous</Button>
+            <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Next</Button>
           </div>
         </div>
       </Card>
+
+      {/* Add Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-bg-base rounded-2xl w-full max-w-lg shadow-2xl p-6 relative">
+            <button onClick={() => setIsAddModalOpen(false)} className="absolute top-4 right-4 text-text-muted hover:text-text-primary">
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold mb-4">Add New Vehicle</h2>
+            <form onSubmit={handleAddVehicle} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Registration No.</label>
+                  <Input required value={formData.registration_number} onChange={e => setFormData({...formData, registration_number: e.target.value})} placeholder="MH-12-AB-1234" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Vehicle Type</label>
+                  <Input required value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} placeholder="Heavy Truck" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Make</label>
+                  <Input required value={formData.make} onChange={e => setFormData({...formData, make: e.target.value})} placeholder="Volvo" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Model</label>
+                  <Input required value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} placeholder="FH16" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Year</label>
+                  <Input required type="number" value={formData.year} onChange={e => setFormData({...formData, year: parseInt(e.target.value)})} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Max Capacity (kg)</label>
+                  <Input required type="number" value={formData.maximum_load_capacity} onChange={e => setFormData({...formData, maximum_load_capacity: parseFloat(e.target.value)})} />
+                </div>
+              </div>
+              <Button type="submit" className="w-full mt-4">Save Vehicle</Button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
