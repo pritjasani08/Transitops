@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast"
 import { AuthProvider } from "../../shared/contexts/AuthContext"
 import { BrowserRouter } from "react-router-dom"
 import { queryClient } from "../../services/config/queryClient"
+import { DevelopmentRoleProvider } from "../../features/auth/dev/DevelopmentRoleProvider"
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
@@ -11,17 +12,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            {children}
-            <Toaster 
-              position="bottom-right" 
-              toastOptions={{
-                className: 'rounded-xl shadow-lg border border-gray-100',
-                style: {
-                  background: 'var(--bg-surface-100, #fff)',
-                  color: 'var(--text-primary, #111827)',
-                },
-              }} 
-            />
+            <DevelopmentRoleProvider>
+              {children}
+              <Toaster 
+                position="bottom-right" 
+                toastOptions={{
+                  className: 'rounded-xl shadow-lg border border-gray-100',
+                  style: {
+                    background: 'var(--bg-surface-100, #fff)',
+                    color: 'var(--text-primary, #111827)',
+                  },
+                }} 
+              />
+            </DevelopmentRoleProvider>
           </AuthProvider>
         </QueryClientProvider>
       </BrowserRouter>
