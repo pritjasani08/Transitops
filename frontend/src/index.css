@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
-
+@custom-variant dark (&:where(.dark, .dark *));
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   
@@ -57,16 +57,7 @@
     --border-subtle: #E5E7EB;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --surface-100: #1F2937;
-      --surface-200: #374151;
-      --bg-base: #111827;
-      --text-primary: #F9FAFB;
-      --text-muted: #9CA3AF;
-      --border-subtle: #374151;
-    }
-  }
+
 
   .dark {
     --surface-100: #1F2937;
