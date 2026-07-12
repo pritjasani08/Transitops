@@ -3,7 +3,7 @@ import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useNavigate } from "react-router-dom"
-import { Truck, Route, ShieldCheck, TrendingUp, Navigation } from "lucide-react"
+import { ROLE_CONFIGURATION, RoleId } from "../../../shared/config/roles/roleConfiguration"
 
 import { Button } from "../../../shared/components/ui/button"
 import { 
@@ -18,33 +18,6 @@ import { FormInput } from "../components/FormInput"
 import { PasswordInput } from "../components/PasswordInput"
 import { SocialLogin } from "../components/SocialLogin"
 import { AuthFooter } from "../components/AuthFooter"
-
-const ROLES = [
-  {
-    id: "fleet_manager",
-    label: "Fleet Manager",
-    icon: Truck,
-    description: "Manage vehicles, drivers and daily fleet operations.",
-  },
-  {
-    id: "dispatcher",
-    label: "Dispatcher",
-    icon: Route,
-    description: "Assign vehicles and drivers to trips while monitoring live dispatch.",
-  },
-  {
-    id: "safety_officer",
-    label: "Safety Officer",
-    icon: ShieldCheck,
-    description: "Manage compliance, licenses and maintenance schedules.",
-  },
-  {
-    id: "financial_analyst",
-    label: "Financial Analyst",
-    icon: TrendingUp,
-    description: "Monitor expenses, reports and operational costs.",
-  },
-] as const
 
 const registerSchema = z.object({
   fullName: z.string().min(2, { message: "Full Name is required" }),
@@ -74,7 +47,7 @@ export function Register() {
   // Watch values
   const passwordValue = watch("password")
   const selectedRoleId = watch("role")
-  const selectedRole = ROLES.find(r => r.id === selectedRoleId)
+  const selectedRole = selectedRoleId ? ROLE_CONFIGURATION[selectedRoleId as RoleId] : null
 
   const onSubmit = async (data: RegisterFormValues) => {
     // Simulate API call
@@ -129,7 +102,9 @@ export function Register() {
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
                     <SelectContent>
-                      {ROLES.map((role) => (
+                      {Object.values(ROLE_CONFIGURATION)
+                        .filter(role => role.id !== 'driver')
+                        .map((role) => (
                         <SelectItem key={role.id} value={role.id} className="py-3">
                           <div className="flex items-center gap-3">
                             <role.icon className="h-5 w-5 text-text-muted" />

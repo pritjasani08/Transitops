@@ -1,5 +1,6 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
+import { getDefaultRoute } from "../config/roles/defaultRoutes"
 
 type Role = "fleet_manager" | "dispatcher" | "safety_officer" | "financial_analyst" | null;
 
@@ -17,7 +18,7 @@ interface AuthContextType {
   logout: () => void
 }
 
-const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
+export const AuthContext = React.createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<User | null>(null)
@@ -47,14 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       role
     })
     
-    // Route based on role
-    switch(role) {
-      case "fleet_manager": navigate("/fleet"); break;
-      case "dispatcher": navigate("/dispatch"); break;
-      case "safety_officer": navigate("/safety"); break;
-      case "financial_analyst": navigate("/finance"); break;
-      default: navigate("/"); break;
-    }
+    navigate(getDefaultRoute(role))
   }
 
   const logout = () => {

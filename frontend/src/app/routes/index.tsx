@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
 import { useAuth } from "../../shared/contexts/AuthContext"
+import { getDefaultRoute } from "../../shared/config/roles/defaultRoutes"
 
 // Layouts
 import { AuthLayout } from "../layouts/AuthLayout"
@@ -89,8 +90,9 @@ function ProtectedRoute({ children, allowedRole }: { children: React.ReactNode, 
     return <Navigate to="/auth/login" replace />
   }
   
-  // Role checks temporarily disabled so you can navigate to any dashboard 
-  // (e.g., from fleet manager to dispatch) while we build out the ESG platform.
+  if (user.role !== allowedRole) {
+    return <Navigate to={getDefaultRoute(user.role)} replace />
+  }
   
   return <>{children}</>
 }
@@ -123,11 +125,7 @@ export function AppRoutes() {
     <Routes>
       {/* Root redirect */}
       <Route path="/" element={
-        !user ? <Navigate to="/auth/login" replace /> : 
-        user.role === 'fleet_manager' ? <Navigate to="/fleet" replace /> :
-        user.role === 'dispatcher' ? <Navigate to="/dispatch" replace /> :
-        user.role === 'safety_officer' ? <Navigate to="/safety" replace /> :
-        <Navigate to="/finance" replace />
+        <Navigate to={getDefaultRoute(user?.role)} replace />
       } />
 
       {/* Auth Routes */}
