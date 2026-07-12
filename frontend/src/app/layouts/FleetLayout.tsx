@@ -1,6 +1,6 @@
 import { useOutlet, useLocation } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sidebar, SidebarItem } from "./components/Sidebar"
+import { Sidebar } from "./components/Sidebar"
 import { TopNavbar } from "./components/TopNavbar"
 import { LayoutDashboard, Truck, Wrench, FileText, BarChart3, FileLineChart } from "lucide-react"
 
