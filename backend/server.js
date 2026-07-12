@@ -13,10 +13,7 @@ const shutdown = () => {
   console.log('Shutting down gracefully...');
   server.close(() => {
     console.log('HTTP server closed.');
-    pool.end(() => {
-      console.log('Database pool closed.');
-      process.exit(0);
-    });
+    process.exit(0);
   });
 };
 

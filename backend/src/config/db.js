@@ -1,24 +1,31 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+const mysql = require('mysql2/promise');
 
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
-
-pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'transithub',
+  port: process.env.DB_PORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  namedPlaceholders: true
 });
 
 module.exports = {
-  query: (text, params) => pool.query(text, params),
-  getClient: () => pool.connect(),
-  pool
+  query: async (text, params) => {
+    // In mysql2, query returns [rows, fields]
+    const [rows, fields] = await pool.query(text, params);
+    return { rows, fields };
+  },
+  getClient: async () => {
+    const connection = await pool.getConnection();
+    return {
+      query: async (text, params) => {
+        const [rows, fields] = await connection.query(text, params);
+        return { rows, fields };
+      },
+      release: () => connection.release(),
+    };
+  }
 };

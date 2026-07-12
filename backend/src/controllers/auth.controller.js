@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 exports.register = async (req, res, next) => {
   try {
@@ -12,7 +13,7 @@ exports.register = async (req, res, next) => {
     const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
 
     // Check if user exists
-    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    const existingUser = await db.query('SELECT id FROM users WHERE email = ?', [email]);
     if (existingUser.rows.length > 0) {
       return res.status(409).json({ success: false, message: 'Email already exists', errors: [] });
     }
@@ -21,22 +22,25 @@ exports.register = async (req, res, next) => {
     const formattedRoleName = role.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
     // Get role id
-    const roleRecord = await db.query('SELECT id FROM roles WHERE name = $1', [formattedRoleName]);
+    const roleRecord = await db.query('SELECT id FROM roles WHERE name = ?', [formattedRoleName]);
     const roleId = roleRecord.rows.length > 0 ? roleRecord.rows[0].id : null;
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Generate UUID
+    const newUserId = crypto.randomUUID();
+
     // Insert user
-    const newUser = await db.query(
-      `INSERT INTO users (first_name, last_name, email, password, role_id) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING id, email, first_name, last_name`,
-      [firstName, lastName, email, hashedPassword, roleId]
+    await db.query(
+      `INSERT INTO users (id, first_name, last_name, email, password, role_id) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [newUserId, firstName, lastName, email, hashedPassword, roleId]
     );
 
     const token = jwt.sign(
-      { id: newUser.rows[0].id, role: role },
+      { id: newUserId, role: role },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '24h' }
     );
@@ -46,7 +50,7 @@ exports.register = async (req, res, next) => {
       message: 'Registration successful',
       data: {
         token,
-        user: { ...newUser.rows[0], role }
+        user: { id: newUserId, email, first_name: firstName, last_name: lastName, role }
       }
     });
   } catch (error) {
@@ -62,7 +66,7 @@ exports.login = async (req, res, next) => {
       SELECT u.*, r.name as role_name 
       FROM users u 
       LEFT JOIN roles r ON u.role_id = r.id 
-      WHERE u.email = $1
+      WHERE u.email = ?
     `, [email]);
 
     if (result.rows.length === 0) {
@@ -90,7 +94,7 @@ exports.login = async (req, res, next) => {
     );
 
     // Update last login
-    await db.query('UPDATE users SET last_login = NOW() WHERE id = $1', [user.id]);
+    await db.query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', [user.id]);
 
     res.json({
       success: true,

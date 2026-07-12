@@ -36,7 +36,8 @@ export function Register() {
       toast.success("Account created successfully!")
     } catch (error: any) {
       console.error("Registration failed", error)
-      toast.error(error.response?.data?.message || "Registration failed. Email might already exist.")
+      const errorMsg = error.response?.data?.message || "Network Error: Could not connect to backend server. Make sure the backend is running on port 3000.";
+      toast.error(errorMsg)
     }
   }
 
