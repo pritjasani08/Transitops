@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Bell, Search } from "lucide-react"
+import { Bell, Search, Sun, Moon } from "lucide-react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { CommandCenter } from "../../../features/shared/components/CommandCenter"
 
@@ -22,13 +22,24 @@ export function TopNavbar() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setIsCommandOpen(true)}
-            className="flex items-center gap-2 rounded-full border border-border-subtle bg-surface-200 px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-100"
+            className="flex items-center justify-between w-48 md:w-64 lg:w-80 rounded-full border border-border-subtle bg-surface-200 px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-surface-100"
           >
-            <Search className="h-4 w-4" />
-            <span>Search...</span>
-            <kbd className="ml-2 hidden rounded border border-border-subtle bg-surface-100 px-1.5 font-mono text-[10px] font-medium text-text-muted sm:inline-block">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              <span>Search...</span>
+            </div>
+            <kbd className="hidden rounded border border-border-subtle bg-surface-100 px-1.5 font-mono text-[10px] font-medium text-text-muted sm:inline-block">
               Ctrl K
             </kbd>
+          </button>
+
+          <button
+            onClick={() => document.documentElement.classList.toggle('dark')}
+            className="relative rounded-full p-2 text-text-muted hover:bg-surface-200 hover:text-text-primary transition-colors"
+            title="Toggle theme"
+          >
+            <Sun className="h-5 w-5 hidden dark:block" />
+            <Moon className="h-5 w-5 block dark:hidden" />
           </button>
 
           <button 
