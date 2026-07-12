@@ -24,24 +24,28 @@ export function FinanceDashboard() {
     operationalCost: 0,
     fuelCost: 0,
     maintenanceCost: 0,
-    profitIndicator: 82,
-    financialHealthScore: 88,
-    highestROIVehicle: "TBD",
-    lowestROIVehicle: "TBD"
+    profitIndicator: 0,
+    financialHealthScore: 0,
+    highestROIVehicle: "Insufficient Data",
+    lowestROIVehicle: "Insufficient Data"
   })
 
   React.useEffect(() => {
     const fetchData = async () => {
       try {
-        const [maintenanceRes, fuelRes, expenseRes] = await Promise.all([
+        const [maintenanceRes, fuelRes, expenseRes, tripRes, vehicleRes] = await Promise.all([
           axiosInstance.get('/maintenance').catch(() => ({ data: { data: [] } })),
           axiosInstance.get('/fuel').catch(() => ({ data: { data: [] } })),
-          axiosInstance.get('/expenses').catch(() => ({ data: { data: [] } }))
+          axiosInstance.get('/expenses').catch(() => ({ data: { data: [] } })),
+          axiosInstance.get('/trips').catch(() => ({ data: { data: [] } })),
+          axiosInstance.get('/vehicles').catch(() => ({ data: { data: [] } }))
         ])
 
         const mLogs = maintenanceRes.data.data || []
         const fLogs = fuelRes.data.data || []
         const eLogs = expenseRes.data.data || []
+        const trips = tripRes.data.data || []
+        const vehicles = vehicleRes.data.data || []
 
         const mCost = mLogs.reduce((sum: number, item: any) => sum + parseFloat(item.cost || 0), 0)
         const fCost = fLogs.reduce((sum: number, item: any) => sum + parseFloat(item.cost || 0), 0)
@@ -49,18 +53,56 @@ export function FinanceDashboard() {
         
         const total = mCost + fCost + eCost
 
+        // Calculate dynamic ROI per vehicle
+        const vehicleStats: Record<string, { revenue: number, costs: number }> = {}
+        
+        vehicles.forEach((v: any) => vehicleStats[v.id] = { revenue: 0, costs: 0 })
+        
+        trips.forEach((t: any) => {
+          if (t.vehicle_id && vehicleStats[t.vehicle_id]) {
+            // Mock revenue calculation: $3.5 per planned mile
+            vehicleStats[t.vehicle_id].revenue += (parseFloat(t.planned_distance) * 3.5) || 0
+          }
+        })
+        
+        mLogs.forEach((m: any) => {
+          if (m.vehicle_id && vehicleStats[m.vehicle_id]) {
+            vehicleStats[m.vehicle_id].costs += parseFloat(m.cost || 0)
+          }
+        })
+        
+        fLogs.forEach((f: any) => {
+          if (f.vehicle_id && vehicleStats[f.vehicle_id]) {
+            vehicleStats[f.vehicle_id].costs += parseFloat(f.cost || 0)
+          }
+        })
+
+        let bestV = null, worstV = null
+        let maxRoi = -Infinity, minRoi = Infinity
+        
+        Object.entries(vehicleStats).forEach(([vId, stats]) => {
+          if (stats.revenue > 0 || stats.costs > 0) {
+            const profit = stats.revenue - stats.costs
+            if (profit > maxRoi) { maxRoi = profit; bestV = vId }
+            if (profit < minRoi) { minRoi = profit; worstV = vId }
+          }
+        })
+
+        const bestVehicleRecord = vehicles.find((v:any) => v.id === bestV)
+        const worstVehicleRecord = vehicles.find((v:any) => v.id === worstV)
+
         // Calculate dynamic health score
-        let score = 95 - (total > 10000 ? 10 : 0) - (mCost > 5000 ? 5 : 0)
+        let score = total === 0 ? 0 : 95 - (total > 10000 ? 10 : 0) - (mCost > 5000 ? 5 : 0)
 
         setData({
           totalExpenses: total,
           operationalCost: mCost + eCost,
           fuelCost: fCost,
           maintenanceCost: mCost,
-          profitIndicator: score - 5,
-          financialHealthScore: Math.max(0, Math.min(100, score)),
-          highestROIVehicle: "MH-12-AB-1234 (Based on usage)",
-          lowestROIVehicle: "NY-05-XY-9876 (High repair cost)"
+          profitIndicator: total === 0 ? 0 : score - 5,
+          financialHealthScore: total === 0 ? 0 : Math.max(0, Math.min(100, score)),
+          highestROIVehicle: bestVehicleRecord ? `${bestVehicleRecord.registration_number}` : "Insufficient Data",
+          lowestROIVehicle: worstVehicleRecord ? `${worstVehicleRecord.registration_number}` : "Insufficient Data"
         })
       } catch (e) {
         console.error("Error fetching finance data")

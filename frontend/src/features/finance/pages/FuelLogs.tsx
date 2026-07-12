@@ -4,17 +4,39 @@ import { Search, Filter, Fuel, Plus, TrendingDown, DollarSign } from "lucide-rea
 import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/components/ui/card"
-import { MOCK_FUEL_LOGS, MOCK_FINANCE_KPIS } from "../utils/mockData"
+import { axiosInstance } from "../../../services/api/axios"
 
 const formatCurrency = (value: number) => 
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 
 export function FuelLogs() {
   const [searchTerm, setSearchTerm] = React.useState("")
+  const [fuelLogs, setFuelLogs] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [totalFuelCost, setTotalFuelCost] = React.useState(0)
 
-  const filteredLogs = MOCK_FUEL_LOGS.filter(log =>
-    log.vehicleId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.location.toLowerCase().includes(searchTerm.toLowerCase())
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const res = await axiosInstance.get('/fuel')
+        const data = res.data.data || []
+        setFuelLogs(data)
+        
+        const cost = data.reduce((acc: number, log: any) => acc + parseFloat(log.cost || 0), 0)
+        setTotalFuelCost(cost)
+      } catch (e) {
+        console.error("Failed to load fuel logs")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  const filteredLogs = fuelLogs.filter(log =>
+    log.vehicle_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    log.station_name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -23,7 +45,7 @@ export function FuelLogs() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-text-primary">Fuel Management</h1>
-          <p className="text-text-muted mt-1">Monitor fleet fuel consumption and efficiency metrics.</p>
+          <p className="text-text-muted mt-1">Live from database: Monitor fleet fuel consumption and efficiency metrics.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white">
@@ -41,9 +63,9 @@ export function FuelLogs() {
                 <DollarSign className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-blue-700 dark:text-blue-400">Monthly Fuel Cost</p>
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-400">Total Fuel Cost</p>
                 <h3 className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                  {formatCurrency(MOCK_FINANCE_KPIS.fuelCost)}
+                  {formatCurrency(totalFuelCost)}
                 </h3>
               </div>
             </div>
@@ -57,9 +79,9 @@ export function FuelLogs() {
                 <Fuel className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-text-muted">Avg. Fuel Efficiency</p>
+                <p className="text-sm font-medium text-text-muted">Total Entries</p>
                 <h3 className="text-2xl font-bold text-text-primary">
-                  {MOCK_FINANCE_KPIS.averageFuelEfficiency} <span className="text-sm font-normal text-text-muted">MPG</span>
+                  {fuelLogs.length}
                 </h3>
               </div>
             </div>
@@ -73,9 +95,9 @@ export function FuelLogs() {
                 <TrendingDown className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-medium text-text-muted">Cost per Mile</p>
+                <p className="text-sm font-medium text-text-muted">Avg Cost / Liter</p>
                 <h3 className="text-2xl font-bold text-text-primary">
-                  $0.52 <span className="text-sm font-normal text-success-600">↓ 3%</span>
+                  {fuelLogs.length > 0 ? formatCurrency(totalFuelCost / fuelLogs.reduce((acc, log) => acc + parseFloat(log.liters || 0), 0)) : '$0.00'}
                 </h3>
               </div>
             </div>
@@ -110,39 +132,27 @@ export function FuelLogs() {
                 <tr>
                   <th className="px-6 py-4 font-medium">Date</th>
                   <th className="px-6 py-4 font-medium">Vehicle ID</th>
-                  <th className="px-6 py-4 font-medium">Location</th>
-                  <th className="px-6 py-4 font-medium text-right">Gallons</th>
-                  <th className="px-6 py-4 font-medium text-right">Cost/Gal</th>
+                  <th className="px-6 py-4 font-medium">Station</th>
+                  <th className="px-6 py-4 font-medium text-right">Liters</th>
                   <th className="px-6 py-4 font-medium text-right">Total Cost</th>
-                  <th className="px-6 py-4 font-medium text-right">Est. MPG</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {filteredLogs.map(log => (
+                {loading ? (
+                   <tr><td colSpan={5} className="text-center py-8 text-text-muted">Loading live database logs...</td></tr>
+                ) : filteredLogs.length === 0 ? (
+                   <tr><td colSpan={5} className="text-center py-8 text-text-muted">No fuel logs found in database.</td></tr>
+                ) : filteredLogs.map(log => (
                   <tr key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
-                    <td className="px-6 py-4">{new Date(log.date).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 font-medium text-text-primary">{log.vehicleId}</td>
-                    <td className="px-6 py-4 text-text-muted">{log.location}</td>
-                    <td className="px-6 py-4 text-right font-mono">{log.gallons.toFixed(1)}</td>
-                    <td className="px-6 py-4 text-right">{formatCurrency(log.costPerGallon)}</td>
-                    <td className="px-6 py-4 text-right font-semibold text-text-primary">{formatCurrency(log.totalCost)}</td>
-                    <td className="px-6 py-4 text-right">
-                       <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold ${
-                         log.mpg > 8.0 ? 'bg-success-50 text-success-700' : 'bg-warning-50 text-warning-700'
-                       }`}>
-                         {log.mpg.toFixed(1)}
-                       </span>
-                    </td>
+                    <td className="px-6 py-4">{new Date(log.filled_date || log.created_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 font-medium text-text-primary">{log.vehicle_id.substring(0,8)}</td>
+                    <td className="px-6 py-4 text-text-muted">{log.station_name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-right font-mono">{parseFloat(log.liters).toFixed(2)} L</td>
+                    <td className="px-6 py-4 text-right font-semibold text-text-primary">{formatCurrency(parseFloat(log.cost))}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            
-            {filteredLogs.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-text-muted">No fuel logs found matching your search.</p>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>

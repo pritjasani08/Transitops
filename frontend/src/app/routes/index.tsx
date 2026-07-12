@@ -9,6 +9,7 @@ import { FleetLayout } from "../layouts/FleetLayout"
 import { DispatcherLayout } from "../layouts/DispatcherLayout"
 import { SafetyLayout } from "../layouts/SafetyLayout"
 import { FinanceLayout } from "../layouts/FinanceLayout"
+import { DriverLayout } from "../layouts/DriverLayout"
 
 // Auth Pages
 import { Login } from "../../features/auth/pages/Login"
@@ -45,6 +46,10 @@ import { IncidentCenter } from "../../features/safety/pages/IncidentCenter"
 import { SafetyAnalytics } from "../../features/safety/pages/SafetyAnalytics"
 import { SafetyReports } from "../../features/safety/pages/SafetyReports"
 import { DriverProfile } from "../../features/safety/pages/DriverProfile"
+
+// Driver Pages
+import { DriverDashboard } from "../../features/driver/pages/DriverDashboard"
+import { AssignedVehicle } from "../../features/driver/pages/AssignedVehicle"
 
 // Finance Pages
 import { FinanceDashboard } from "../../features/finance/pages/FinanceDashboard"
@@ -148,8 +153,7 @@ export function AppRoutes() {
         <Route path="drivers" element={<DriverDirectory />} />
         <Route path="registry/:id" element={<VehicleDetails />} />
         <Route path="documents" element={<VehicleDocuments />} />
-        <Route path="maintenance" element={<MaintenanceCenter />} />
-        <Route path="maintenance/calendar" element={<MaintenanceCalendar />} />
+
         <Route path="analytics" element={<FleetAnalytics />} />
         <Route path="reports" element={<FleetReports />} />
         {renderSharedRoutes()}
@@ -183,6 +187,8 @@ export function AppRoutes() {
         <Route index element={<SafetyDashboard />} />
         <Route path="drivers" element={<DriverDirectory />} />
         <Route path="drivers/:id" element={<DriverProfile />} />
+        <Route path="maintenance" element={<MaintenanceCenter />} />
+        <Route path="maintenance/calendar" element={<MaintenanceCalendar />} />
         <Route path="licenses" element={<LicenseMonitoring />} />
         <Route path="compliance" element={<ComplianceCenter />} />
         <Route path="incidents" element={<IncidentCenter />} />
@@ -208,6 +214,20 @@ export function AppRoutes() {
         <Route path="export" element={<ExportCenter />} />
         {renderSharedRoutes()}
         <Route path="*" element={<Placeholder title="Finance Module" />} />
+      </Route>
+
+      {/* Driver Workspace */}
+      <Route path="/driver" element={
+        <ProtectedRoute allowedRole="driver">
+          <DriverLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<DriverDashboard />} />
+        <Route path="trips" element={<DriverDashboard />} />
+        <Route path="history" element={<DriverDashboard />} />
+        <Route path="vehicle" element={<AssignedVehicle />} />
+        {renderSharedRoutes()}
+        <Route path="*" element={<Placeholder title="Driver Module" />} />
       </Route>
 
       {/* 404 */}

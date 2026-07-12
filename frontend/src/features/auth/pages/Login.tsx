@@ -9,7 +9,6 @@ import { Input } from "../../../shared/components/ui/input"
 import toast from "react-hot-toast"
 import { FormInput } from "../components/FormInput"
 import { PasswordInput } from "../components/PasswordInput"
-import { SocialLogin } from "../components/SocialLogin"
 import { AuthFooter } from "../components/AuthFooter"
 
 const loginSchema = z.object({
@@ -75,25 +74,13 @@ export function Login() {
               {...register("password")}
             />
 
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="rememberMe"
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/50"
-                {...register("rememberMe")}
-              />
-              {errors.password && (
-                <p className="text-xs text-danger-500">{errors.password.message}</p>
-              )}
-            </div>
+
             
             <Button disabled={isSubmitting} isLoading={isSubmitting} type="submit" className="mt-6">
               Sign In
             </Button>
           </div>
         </form>
-
-        <SocialLogin disabled={isSubmitting} />
       </div>
 
       <AuthFooter 

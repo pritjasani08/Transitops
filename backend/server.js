@@ -8,6 +8,9 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+// Keep the event loop alive explicitly to prevent immediate exit on Windows environments
+setInterval(() => {}, 1000 * 60 * 60);
+
 // Graceful Shutdown
 const shutdown = () => {
   console.log('Shutting down gracefully...');
@@ -19,3 +22,11 @@ const shutdown = () => {
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});

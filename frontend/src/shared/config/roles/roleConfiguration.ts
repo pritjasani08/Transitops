@@ -42,8 +42,6 @@ export const ROLE_CONFIGURATION: Record<RoleId, RoleConfig> = {
       { name: "Dashboard", href: "/fleet", icon: LayoutDashboard },
       { name: "Vehicles", href: "/fleet/registry", icon: Car },
       { name: "Drivers", href: "/fleet/drivers", icon: Users },
-      { name: "Maintenance", href: "/fleet/maintenance", icon: Wrench },
-      { name: "Finance", href: "/finance", icon: DollarSign },
     ]
   },
   dispatcher: {
@@ -68,9 +66,8 @@ export const ROLE_CONFIGURATION: Record<RoleId, RoleConfig> = {
     permissions: ["safety:read", "safety:write", "compliance:read", "compliance:write", "drivers:read"],
     sidebar: [
       { name: "Dashboard", href: "/safety", icon: LayoutDashboard },
-      { name: "Drivers", href: "/safety/drivers", icon: Users },
       { name: "Compliance", href: "/safety/compliance", icon: ShieldCheck },
-      { name: "Maintenance", href: "/fleet/maintenance", icon: Wrench },
+      { name: "Maintenance", href: "/safety/maintenance", icon: Wrench },
     ]
   },
   financial_analyst: {
@@ -97,8 +94,7 @@ export const ROLE_CONFIGURATION: Record<RoleId, RoleConfig> = {
     sidebar: [
       { name: "My Trips", href: "/driver/trips", icon: Route },
       { name: "Assigned Vehicle", href: "/driver/vehicle", icon: Car },
-      { name: "Trip History", href: "/driver/history", icon: Clock },
-      { name: "Profile", href: "/driver/profile", icon: Users },
+      { name: "Trip History", href: "/driver/history", icon: Clock }
     ]
   }
 }

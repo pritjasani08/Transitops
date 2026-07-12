@@ -2,11 +2,63 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+const otpStore = new Map(); // Simple in-memory store for hackathon
+
+// Setup nodemailer transporter using env vars
+const getTransporter = () => {
+  return nodemailer.createTransport({
+    host: 'smtp.gmail.com', // fallback
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER || process.env.SMTP_EMAIL,
+      pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD
+    }
+  });
+};
+
+exports.sendOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
+
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    otpStore.set(email, { otp, expiresAt: Date.now() + 10 * 60 * 1000 }); // 10 min expiration
+
+    const transporter = getTransporter();
+    
+    await transporter.sendMail({
+      from: `"TransitHub" <${process.env.SMTP_USER || process.env.SMTP_EMAIL}>`,
+      to: email,
+      subject: "Your TransitHub Registration OTP",
+      text: `Your One-Time Password for registration is: ${otp}. It will expire in 10 minutes.`,
+      html: `<h3>Welcome to TransitHub</h3><p>Your One-Time Password for registration is: <strong>${otp}</strong></p><p>It will expire in 10 minutes.</p>`
+    });
+
+    res.json({ success: true, message: 'OTP sent successfully to ' + email });
+  } catch (error) {
+    console.error("Failed to send OTP:", error);
+    res.status(500).json({ success: false, message: 'Failed to send OTP email. Check SMTP credentials.' });
+  }
+};
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, otp } = req.body;
     
+    if (!otp) {
+      return res.status(400).json({ success: false, message: 'OTP is required for registration' });
+    }
+
+    const storedOtpData = otpStore.get(email);
+    if (!storedOtpData || storedOtpData.otp !== otp || Date.now() > storedOtpData.expiresAt) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    }
+
     // Split name into first_name and last_name
     const nameParts = name.split(' ');
     const firstName = nameParts[0];
@@ -44,6 +96,9 @@ exports.register = async (req, res, next) => {
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '24h' }
     );
+
+    // Clear OTP after successful use
+    otpStore.delete(email);
 
     res.json({
       success: true,
