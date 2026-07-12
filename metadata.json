@@ -1,0 +1,6 @@
+{
+  "name": "TransitHub",
+  "description": "Smart Fleet Operations Platform. Enterprise SaaS for managing vehicles, drivers, trips, and logistics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
