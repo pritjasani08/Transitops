@@ -23,9 +23,9 @@ export function Sidebar({ title, items }: SidebarProps) {
   const workspacePath = `/${location.pathname.split('/')[1] || 'fleet'}`
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-border-subtle bg-surface-100">
-      <div className="flex h-16 items-center px-6 font-semibold text-lg text-text-primary">
-        <div className="h-8 w-8 rounded-lg bg-primary mr-3 flex items-center justify-center text-white">
+    <div className="flex h-screen w-64 flex-col border-r border-border-subtle bg-surface-100 dark:bg-gray-900">
+      <div className="flex h-16 items-center px-6 font-semibold text-lg text-text-primary tracking-tight">
+        <div className="h-8 w-8 rounded-lg bg-primary mr-3 flex items-center justify-center text-white shadow-md shadow-primary/20 ring-1 ring-primary/50">
           <span className="font-bold text-sm">TH</span>
         </div>
         TransitHub
@@ -45,15 +45,19 @@ export function Sidebar({ title, items }: SidebarProps) {
             end={item.href === workspacePath}
             className={({ isActive }) =>
               cn(
-                "group flex items-center rounded-xl px-3 py-2 text-sm font-medium transition-all",
+                "group flex items-center rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
                 isActive
-                  ? "bg-primary/10 text-primary font-semibold border-r-2 border-primary"
-                  : "text-text-muted hover:bg-surface-200 hover:text-text-primary"
+                  ? "bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400 shadow-sm font-semibold border-r-2 border-primary"
+                  : "text-text-muted hover:bg-surface-200 hover:text-text-primary dark:hover:bg-gray-800/50"
               )
             }
           >
-            <item.icon className="mr-3 h-5 w-5 flex-shrink-0" aria-hidden="true" />
-            {item.name}
+            {({ isActive }) => (
+              <>
+                <item.icon className={cn("mr-3 h-5 w-5 flex-shrink-0 transition-colors duration-200", isActive ? "text-primary-600 dark:text-primary-400" : "text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300")} aria-hidden="true" />
+                {item.name}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
